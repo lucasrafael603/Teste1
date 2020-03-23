@@ -1,0 +1,82 @@
+create database teste1
+
+use teste1
+
+
+
+select * from players where player_id = 1 -- -- identidade
+
+select * from player_monthly_stats -- where player_id in (362) --where id = 1 ---  toda a atividade dos jogadores no modo competitivo, que inclui tanto dados ranqueados quanto em outros modos competitivos.
+
+
+select * from matchmaking_stats_summary -- where player_id in (362) ---- compõe todos os dados do jogador no nosso modo ranqueado
+
+select * from matchmaking_stats_summary where created_at <> updated_at
+
+
+
+
+
+-- --Exercicio 1--
+select count(w.id) Usuarios from (
+select distinct y.anomes,y.dia,  y.id, 	y.player_id	,y.matches_played	,y.total_wins	,y.total_loss	,y.mm_points	,y.assist	,y.death	,y.hs	,y.kills	,y.is_mm	,y.created_at from ( 
+select x.ano * 100 + x.mes anomes, x.* from(
+select year(updated_at) ano, month(updated_at) mes,day(updated_at) dia, *  from  matchmaking_stats_summary) x ) y
+where y.anomes >= 202002 and y.dia >= 3) w
+
+-- --Exercicio 2
+select count(w.id) Usuarios from (
+select distinct y.anomes,y.dia,  y.id, 	y.player_id	,y.matches_played	,y.total_wins	,y.total_loss	,y.mm_points	,y.assist	,y.death	,y.hs	,y.kills	,y.is_mm	,y.created_at from ( 
+select x.ano * 100 + x.mes anomes, x.* from(
+select year(updated_at) ano, month(updated_at) mes,day(updated_at) dia, *  from  matchmaking_stats_summary) x ) y
+where y.anomes >= 202002 and y.dia >= 6) w
+
+-- --Exercicio 3
+
+select w.anomes, dia ,count(dia) as contador from (
+select distinct y.anomes,y.dia,  y.id, 	y.player_id	,y.matches_played	,y.total_wins	,y.total_loss	,y.mm_points	,y.assist	,y.death	,y.hs	,y.kills	,y.is_mm	,y.created_at from ( 
+select x.ano * 100 + x.mes anomes, x.* from(
+select year(updated_at) ano, month(updated_at) mes,day(updated_at) dia, *  from  matchmaking_stats_summary) x ) y
+where y.anomes = 202002) w
+group by w.anomes, dia order by count(dia) desc
+
+-- -RESPOSTA: dia 2
+
+
+-- ----------Correlações e pontos importantes
+select ps.player_id, 
+max(ps.wins) - max(ms.total_wins) No_Ranked_Win, 
+max(ms.total_wins) Ranked_Win,
+max(ps.loss) - max(ms.total_loss) No_Ranked_Loss,
+max(ms.total_loss) Ranked_Loss,
+max(ps.total_played) - max(ms.matches_played) no_ranked_matches, 
+max(ms.matches_played) Ranked_matches,
+max(ps.kills) - max(ms.kills) No_Ranked_Kills,
+max(ms.kills) Ranked_Kills,
+max(ps.assists) - max(ms.assist) No_Ranked_Assist,
+max(ms.assist) Ranked_Assist,
+max(ps.deaths) - max(ms.death) No_Ranked_Death,
+max(ms.death) Ranked_Death,
+max(ps.headshots) - max(ms.hs) No_Ranked_hs,
+max(ms.hs) Ranked_hs
+from player_monthly_stats ps
+inner join matchmaking_stats_summary ms on  ps.player_id = ms.player_id
+group by ps.player_id order by 1 asc
+
+-- --------------------------- Nesta consulta listo os jogadores que após a criação da conta jogaram no modo Ranked
+
+
+select distinct w.player_id ,w.anomes,w.dia, w.ref_date, ps.player_id,ps.anomes,ps.dia, ps.updated_at from (
+select x.ano * 100 + x.mes anomes, x.* from(
+select year(ref_date) ano, month(ref_date) mes,day(ref_date) dia, *  from  player_monthly_stats) x )  w
+right join (select year(updated_at) * 100 + month(updated_at) anomes,day(updated_at) dia, created_at ,updated_at, player_id from matchmaking_stats_summary ) ps on w.anomes = ps.anomes and w.dia = ps.dia and w.player_id = ps.player_id
+where w.anomes is null
+
+-- --------------------- 
+
+select distinct w.player_id ,w.anomes,w.dia, w.ref_date, ps.player_id,ps.anomes,ps.dia, ps.updated_at,
+case when w.anomes = ps.anomes and w.dia <> ps.dia then 'Jogou ranked' else 'Não jogou ranked' end Verificação 
+from (
+select x.ano * 100 + x.mes anomes, x.* from(
+select year(ref_date) ano, month(ref_date) mes,day(ref_date) dia, *  from  player_monthly_stats) x )  w
+inner join (select year(updated_at) * 100 + month(updated_at) anomes,day(updated_at) dia, created_at ,updated_at, player_id from matchmaking_stats_summary ) ps on w.player_id = ps.player_id
